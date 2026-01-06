@@ -1,7 +1,3 @@
-"""
-Training script for Biaffine Dependency Parser
-"""
-
 import os
 import json
 import torch
@@ -11,28 +7,21 @@ from torch.utils.tensorboard import SummaryWriter
 from transformers import get_linear_schedule_with_warmup
 import argparse
 from tqdm import tqdm
-import numpy as np
 from datetime import datetime
 
 # Import our modules
-from ..models.biaffine_parser import BiaffineDependencyParser, ParserConfig
-from ..models.bert_encoder import VietnameseBertTokenizer
-from ..datasets.ud_dataset import create_dataloaders
-from ..utils.mst_decoder import MSTDecoder, GreedyDecoder, evaluate_parsing_accuracy
+from models.biaffine_parser import BiaffineDependencyParser, ParserConfig
+from models.bert_encoder import VietnameseBertTokenizer
+from datasets.ud_dataset import create_dataloaders
+from utils.mst_decoder import MSTDecoder, GreedyDecoder, evaluate_parsing_accuracy
 
 
 class DependencyParserTrainer:
-    """
-    Trainer class for biaffine dependency parser.
-    """
-    
     def __init__(self, config: ParserConfig):
         self.config = config
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
-        # Create output directory
         os.makedirs(config.output_dir, exist_ok=True)
-        
         # Save config
         with open(os.path.join(config.output_dir, 'config.json'), 'w') as f:
             json.dump(config.to_dict(), f, indent=2)
@@ -359,15 +348,7 @@ class DependencyParserTrainer:
 
 def main():
     parser = argparse.ArgumentParser(description='Train Biaffine Dependency Parser')
-    parser.add_argument('--config', type=str, help='Path to config file')
-    parser.add_argument('--train_path', type=str, default='../../../vi_vtb-ud-train.conllu')
-    parser.add_argument('--dev_path', type=str, default='../../../vi_vtb-ud-dev.conllu')  
-    parser.add_argument('--test_path', type=str, default='../../../vi_vtb-ud-test.conllu')
-    parser.add_argument('--output_dir', type=str, default='../../experiments/biaffine_parser')
-    parser.add_argument('--batch_size', type=int, default=16)
-    parser.add_argument('--max_epochs', type=int, default=50)
-    parser.add_argument('--learning_rate', type=float, default=2e-5)
-    
+    parser.add_argument('--config', type=str, help='Path to config file (JSON)')    
     args = parser.parse_args()
     
     # Create config
@@ -376,32 +357,16 @@ def main():
             config_dict = json.load(f)
         config = ParserConfig.from_dict(config_dict)
     else:
-        config = ParserConfig()
-    
-    # Override config with command line arguments
-    if args.train_path:
-        config.train_path = args.train_path
-    if args.dev_path:
-        config.dev_path = args.dev_path
-    if args.test_path:
-        config.test_path = args.test_path
-    if args.output_dir:
-        config.output_dir = args.output_dir
-    if args.batch_size:
-        config.batch_size = args.batch_size
-    if args.max_epochs:
-        config.max_epochs = args.max_epochs
-    if args.learning_rate:
-        config.learning_rate = args.learning_rate
+        raise ValueError("Config file path must be provided with --config")
     
     # Add timestamp to output dir
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     config.output_dir = os.path.join(config.output_dir, f"run_{timestamp}")
-    
+    os.makedirs(config.output_dir, exist_ok=True)
+
     # Create trainer and start training
     trainer = DependencyParserTrainer(config)
     trainer.train()
-
 
 if __name__ == "__main__":
     main()

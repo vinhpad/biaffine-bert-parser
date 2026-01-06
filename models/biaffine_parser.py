@@ -1,15 +1,10 @@
-"""
-Biaffine Dependency Parser Model
-Combines BERT encoder with biaffine attention for dependency parsing.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict, Tuple, Optional, List
 
-from .bert_encoder import BertEncoder, extract_word_representations
-from ..modules.biaffine_attention import BiaffineParser
+from models.bert_encoder import BertEncoder, extract_word_representations
+from modules.biaffine_attention import BiaffineParser
 
 
 class BiaffineDependencyParser(nn.Module):
@@ -26,7 +21,7 @@ class BiaffineDependencyParser(nn.Module):
     """
     
     def __init__(self,
-                 bert_model_name: str = "vinai/phobert-base",
+                 bert_model_name: str = "vinai/phobert-base-v2",
                  num_labels: int = 40,
                  arc_mlp_size: int = 500,
                  label_mlp_size: int = 100,

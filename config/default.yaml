@@ -1,7 +1,7 @@
 # Configuration for Biaffine Dependency Parser
 
 # Model architecture
-bert_model_name: "vinai/phobert-base"
+bert_model_name: "vinai/phobert-base-v2"
 num_labels: 40  # Will be automatically set based on data
 arc_mlp_size: 500
 label_mlp_size: 100
@@ -26,7 +26,7 @@ eval_steps: 500
 save_steps: 1000
 
 # Data paths (relative to project root)
-train_path: "../../vi_vtb-ud-train.conllu"
-dev_path: "../../vi_vtb-ud-dev.conllu"  
-test_path: "../../vi_vtb-ud-test.conllu"
-output_dir: "../../experiments/biaffine_parser"
+train_path: "data/vi_vtb-ud-train.conllu"
+dev_path: "data/vi_vtb-ud-dev.conllu"  
+test_path: "data/vi_vtb-ud-test.conllu"
+output_dir: "data/experiments/biaffine_parser"

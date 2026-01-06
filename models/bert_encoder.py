@@ -78,7 +78,7 @@ class VietnameseBertTokenizer:
     Wrapper for Vietnamese BERT tokenizer with utilities for dependency parsing.
     """
     
-    def __init__(self, model_name: str = "vinai/phobert-base"):
+    def __init__(self, model_name: str = "vinai/phobert-base-v2"):
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         
         # Special tokens

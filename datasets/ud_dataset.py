@@ -1,15 +1,9 @@
-"""
-Dataset loader for CoNLL-U format for Vietnamese dependency parsing.
-"""
-
 import torch
 from torch.utils.data import Dataset, DataLoader
-import numpy as np
-from typing import List, Dict, Tuple, Optional, Set
-import re
-from collections import Counter, defaultdict
+from typing import List, Dict, Tuple, Optional
+from collections import Counter
 
-from ..models.bert_encoder import VietnameseBertTokenizer
+from models.bert_encoder import VietnameseBertTokenizer
 
 
 class ConlluSentence:
@@ -58,52 +52,46 @@ class ConlluReader:
             List of ConlluSentence objects
         """
         sentences = []
-        current_sentence = None
         
         with open(file_path, 'r', encoding='utf-8') as f:
+            current_sentence = None
             for line in f:
                 line = line.strip()
                 
-                if not line:  # Empty line indicates end of sentence
-                    if current_sentence and current_sentence.tokens:
+                if not line:
+                    if current_sentence:
                         sentences.append(current_sentence)
                     current_sentence = None
                     continue
                 
-                if line.startswith('#'):  # Comment line
-                    if current_sentence is None:
-                        current_sentence = ConlluSentence()
-                    
+                if current_sentence is None:
+                    current_sentence = ConlluSentence()
+
+                if line.startswith('#'):
                     if line.startswith('# sent_id ='):
                         current_sentence.sent_id = line.split('=', 1)[1].strip()
                     elif line.startswith('# text ='):
                         current_sentence.text = line.split('=', 1)[1].strip()
-                    continue
-                
-                # Token line
-                if current_sentence is None:
-                    current_sentence = ConlluSentence()
-                
-                fields = line.split('\t')
-                if len(fields) == 10:
-                    token_data = {
-                        'id': fields[0],
-                        'form': fields[1],
-                        'lemma': fields[2],
-                        'upos': fields[3],
-                        'xpos': fields[4],
-                        'feats': fields[5],
-                        'head': fields[6],
-                        'deprel': fields[7],
-                        'deps': fields[8],
-                        'misc': fields[9]
-                    }
-                    current_sentence.add_token(token_data)
-        
-        # Add the last sentence if exists
-        if current_sentence and current_sentence.tokens:
+                else:
+                    fields = line.split('\t')
+                    if len(fields) == 10:
+                        token_data = {
+                            'id': fields[0],
+                            'form': fields[1],
+                            'lemma': fields[2],
+                            'upos': fields[3],
+                            'xpos': fields[4],
+                            'feats': fields[5],
+                            'head': fields[6],
+                            'deprel': fields[7],
+                            'deps': fields[8],
+                            'misc': fields[9]
+                        }
+                        current_sentence.add_token(token_data)
+
+        if current_sentence:
             sentences.append(current_sentence)
-        
+            
         return sentences
 
 
@@ -346,49 +334,3 @@ def create_dataloaders(train_file: str,
     )
     
     return train_loader, dev_loader, test_loader, label_vocab
-
-
-if __name__ == "__main__":
-    # Test the dataset
-    print("Testing Dependency Parsing Dataset...")
-    
-    # Create tokenizer
-    tokenizer = VietnameseBertTokenizer()
-    
-    # Test with a sample file (you'll need to adjust the path)
-    train_file = "../../vi_vtb-ud-train.conllu"
-    
-    try:
-        # Create dataset
-        dataset = DependencyParsingDataset(train_file, tokenizer, max_length=128)
-        
-        print(f"Dataset size: {len(dataset)}")
-        print(f"Label vocabulary size: {dataset.label_vocab.size()}")
-        
-        # Print most common labels
-        print("\nMost common dependency relations:")
-        for label, count in dataset.label_vocab.most_common_labels(10):
-            print(f"  {label}: {count}")
-        
-        # Test a sample
-        if len(dataset) > 0:
-            sample = dataset[0]
-            print(f"\nSample data keys: {list(sample.keys())}")
-            print(f"Number of words: {sample['num_words']}")
-            print(f"Words: {sample['words'][:5]}...")  # First 5 words
-            print(f"Heads: {sample['heads'][:5]}")     # First 5 heads
-            
-            # Test collate function
-            batch = [sample, dataset[min(1, len(dataset)-1)]]
-            batched = collate_fn(batch)
-            print(f"\nBatched data keys: {list(batched.keys())}")
-            print(f"Input IDs shape: {batched['input_ids'].shape}")
-            print(f"Heads shape: {batched['heads'].shape}")
-        
-        print("Dataset test passed!")
-        
-    except FileNotFoundError:
-        print(f"Test file not found: {train_file}")
-        print("Please adjust the path or run from the correct directory.")
-    except Exception as e:
-        print(f"Error during testing: {e}")
