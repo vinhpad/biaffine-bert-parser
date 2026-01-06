@@ -8,6 +8,7 @@ from transformers import get_linear_schedule_with_warmup
 import argparse
 from tqdm import tqdm
 from datetime import datetime
+import yaml
 
 # Import our modules
 from models.biaffine_parser import BiaffineDependencyParser, ParserConfig
@@ -23,8 +24,8 @@ class DependencyParserTrainer:
         
         os.makedirs(config.output_dir, exist_ok=True)
         # Save config
-        with open(os.path.join(config.output_dir, 'config.json'), 'w') as f:
-            json.dump(config.to_dict(), f, indent=2)
+        with open(os.path.join(config.output_dir, 'config.yml'), 'w') as f:
+            yaml.dump(config.to_dict(), f, default_flow_style=False)
         
         # Initialize tensorboard writer
         self.writer = SummaryWriter(os.path.join(config.output_dir, 'logs'))
@@ -76,20 +77,12 @@ class DependencyParserTrainer:
         self.patience_counter = 0
     
     def _create_optimizer(self):
-        """Create optimizer with different learning rates for BERT and other parameters."""
-        bert_params = []
-        other_params = []
-        
-        for name, param in self.model.named_parameters():
-            if 'bert_encoder.bert' in name:
-                bert_params.append(param)
-            else:
-                other_params.append(param)
-        
-        optimizer = optim.AdamW([
-            {'params': bert_params, 'lr': self.config.bert_learning_rate},
-            {'params': other_params, 'lr': self.config.learning_rate}
-        ], weight_decay=self.config.weight_decay)
+        """Create Adam optimizer with single learning rate."""
+        optimizer = optim.Adam(
+            self.model.parameters(),
+            lr=float(self.config.learning_rate),
+            weight_decay=float(self.config.weight_decay)
+        )
         
         return optimizer
     
@@ -163,7 +156,7 @@ class DependencyParserTrainer:
             })
             
             # Evaluate on dev set
-            if self.global_step % self.config.eval_steps == 0:
+            if self.global_step > 0 and self.global_step % self.config.eval_steps == 0:
                 dev_metrics = self.evaluate(self.dev_loader, "dev")
                 self._log_metrics(dev_metrics, "dev", self.global_step)
                 
@@ -178,7 +171,7 @@ class DependencyParserTrainer:
                 self.model.train()  # Back to training mode
             
             # Save checkpoint
-            if self.global_step % self.config.save_steps == 0:
+            if self.global_step > 0 and self.global_step % self.config.save_steps == 0:
                 self._save_checkpoint(f'checkpoint_step_{self.global_step}.pt')
     
     def evaluate(self, dataloader, split_name: str = "eval"):
@@ -244,12 +237,9 @@ class DependencyParserTrainer:
         # Calculate metrics
         avg_loss = total_loss / len(dataloader)
         
-        # UAS (Unlabeled Attachment Score)
-        uas, uas_correct, uas_total = evaluate_parsing_accuracy(
-            all_predicted_heads, all_gold_heads, torch.tensor(all_masks)
-        )
-        
-        # LAS (Labeled Attachment Score) 
+        # UAS (Unlabeled Attachment Score) and LAS (Labeled Attachment Score)
+        uas_correct = 0
+        uas_total = 0
         las_correct = 0
         las_total = 0
         
@@ -258,10 +248,14 @@ class DependencyParserTrainer:
         ):
             for i, (ph, gh, pl, gl, m) in enumerate(zip(pred_heads, gold_heads, pred_labels, gold_labels, mask)):
                 if m:  # Valid token
+                    if ph == gh:
+                        uas_correct += 1
                     if ph == gh and pl == gl:
                         las_correct += 1
+                    uas_total += 1
                     las_total += 1
         
+        uas = uas_correct / uas_total if uas_total > 0 else 0.0
         las = las_correct / las_total if las_total > 0 else 0.0
         
         metrics = {
@@ -348,16 +342,16 @@ class DependencyParserTrainer:
 
 def main():
     parser = argparse.ArgumentParser(description='Train Biaffine Dependency Parser')
-    parser.add_argument('--config', type=str, help='Path to config file (JSON)')    
+    parser.add_argument('--config', type=str, default='config/default.yaml', help='Path to config file (YAML)')    
     args = parser.parse_args()
     
     # Create config
     if args.config:
         with open(args.config) as f:
-            config_dict = json.load(f)
+            config_dict = yaml.safe_load(f)
         config = ParserConfig.from_dict(config_dict)
     else:
-        raise ValueError("Config file path must be provided with --config")
+        config = ParserConfig()
     
     # Add timestamp to output dir
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

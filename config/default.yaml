@@ -29,4 +29,4 @@ save_steps: 1000
 train_path: "data/vi_vtb-ud-train.conllu"
 dev_path: "data/vi_vtb-ud-dev.conllu"  
 test_path: "data/vi_vtb-ud-test.conllu"
-output_dir: "data/experiments/biaffine_parser"
+output_dir: "experiments/biaffine_parser"
