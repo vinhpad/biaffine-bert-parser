@@ -50,9 +50,9 @@ class DependencyParserTrainer:
         self.model = BiaffineDependencyParser(
             bert_model_name=config.bert_model_name,
             num_labels=config.num_labels,
-            arc_mlp_size=config.arc_mlp_size,
-            label_mlp_size=config.label_mlp_size,
-            dropout=config.dropout,
+            n_arc_mlp=config.n_arc_mlp,
+            n_rel_mlp=config.n_rel_mlp,
+            mlp_dropout=config.mlp_dropout,
             freeze_bert=config.freeze_bert
         ).to(self.device)
         

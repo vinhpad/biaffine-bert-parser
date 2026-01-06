@@ -3,9 +3,9 @@
 # Model architecture
 bert_model_name: "vinai/phobert-base-v2"
 num_labels: 40  # Will be automatically set based on data
-arc_mlp_size: 500
-label_mlp_size: 100
-dropout: 0.33
+n_arc_mlp: 500
+n_rel_mlp: 100
+mlp_dropout: 0.33
 freeze_bert: false
 
 # Training parameters

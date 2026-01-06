@@ -73,7 +73,7 @@ class BiaffineDependencyParser(nn.Module):
         self.mlp_rel_h = MLP(n_in=hidden_size, n_out=n_rel_mlp, dropout=mlp_dropout)
         
         # Biaffine attention layers
-        self.arc_attn = Biaffine(n_in=n_arc_mlp, scale=scale, bias_x=True, bias_y=False)
+        self.arc_attn = Biaffine(n_in=n_arc_mlp, bias_x=True, bias_y=False)
         self.rel_attn = Biaffine(n_in=n_rel_mlp, n_out=num_labels, bias_x=True, bias_y=True)
         
         # Criterion for computing loss
